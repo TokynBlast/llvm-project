@@ -1161,26 +1161,20 @@ declaration. In these cases, users can add an `extraClassDefinition` to define
 code that is added to the generated source file inside the op's C++ namespace.
 The substitution `$cppClass` is replaced by the op's C++ class name.
 
-### Inheritable extra declarations and definitions
+### Accumulating extra declarations with `let append`
 
 When defining base op classes in TableGen, `extraClassDeclaration` and
 `extraClassDefinition` follow standard TableGen `let` override semantics: if a
 derived class sets them, the base class values are lost. To provide shared C++
-code that is automatically available to all derived ops, use
-`inheritableExtraClassDeclaration` and `inheritableExtraClassDefinition`.
-
-These fields **accumulate** across the class hierarchy. Each class in the
-inheritance chain that sets a new value contributes its code to all concrete ops
-below it. A derived class can opt out of inherited declarations by setting the
-field to empty (`[{}]`).
+code that **accumulates** across the class hierarchy, use `let append`:
 
 ```tablegen
 class MyDialectOp<string mnemonic, list<Trait> traits = []>
     : Op<MyDialect, mnemonic, traits> {
-  let inheritableExtraClassDeclaration = [{
+  let append extraClassDeclaration = [{
     MyDialect &getDialectInstance();
   }];
-  let inheritableExtraClassDefinition = [{
+  let append extraClassDefinition = [{
     MyDialect &$cppClass::getDialectInstance() {
       return static_cast<MyDialect &>((*this)->getDialect());
     }
@@ -1189,7 +1183,7 @@ class MyDialectOp<string mnemonic, list<Trait> traits = []>
 
 def FooOp : MyDialectOp<"foo"> {
   // FooOp gets both getDialectInstance() and doFoo().
-  let extraClassDeclaration = [{ void doFoo(); }];
+  let append extraClassDeclaration = [{ void doFoo(); }];
 }
 
 def BarOp : MyDialectOp<"bar"> {
@@ -1197,8 +1191,9 @@ def BarOp : MyDialectOp<"bar"> {
 }
 ```
 
-Multiple levels of the hierarchy can set `inheritableExtraClassDeclaration`;
-all their values are concatenated in the generated code.
+Multiple levels of the hierarchy can use `let append extraClassDeclaration`;
+all their values are concatenated in the generated code. A derived class can
+opt out by using a plain `let` to override the accumulated value.
 
 ### Generated C++ code
 

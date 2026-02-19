@@ -589,63 +589,63 @@ def _TypeInferredPropOp : NS_Op<"type_inferred_prop_op_with_properties", [
   let hasCustomAssemblyFormat = 1;
 }
 
-// Test inheritable extra class declarations/definitions.
+// Test 'let append' for extra class declarations/definitions.
 class NS_InheritableOp<string mnemonic, list<Trait> traits = []>
     : NS_Op<mnemonic, traits> {
-  let inheritableExtraClassDeclaration = [{
+  let append extraClassDeclaration = [{
     int getInheritedHelper();
   }];
-  let inheritableExtraClassDefinition = [{
+  let append extraClassDefinition = [{
     int $cppClass::getInheritedHelper() { return 42; }
   }];
 }
 
-// Both inheritable and regular extra declarations should appear.
+// Both appended and regular extra declarations should appear.
 def NS_InheritableOpA : NS_InheritableOp<"inheritable_op_a"> {
-  let extraClassDeclaration = [{
+  let append extraClassDeclaration = [{
     void doA();
   }];
-  let extraClassDefinition = [{
+  let append extraClassDefinition = [{
     void $cppClass::doA() {}
   }];
 }
 
-// Only inheritable declarations (no extraClassDeclaration).
+// Only appended declarations from parent (no additional extraClassDeclaration).
 def NS_InheritableOpB : NS_InheritableOp<"inheritable_op_b"> {}
 
-// Discard inheritable declarations by setting to empty.
+// Discard accumulated declarations by using plain 'let' to override.
 def NS_InheritableOpC : NS_InheritableOp<"inheritable_op_c"> {
-  let inheritableExtraClassDeclaration = [{}];
-  let inheritableExtraClassDefinition = [{}];
+  let extraClassDeclaration = ?;
+  let extraClassDefinition = ?;
 }
 
 // Middle-of-stack: NS_Op -> NS_InheritableOp -> NS_InheritableMiddleOp
-// The middle class adds its own inheritableExtraClassDeclaration. Concrete ops
-// get both the base and middle inheritable declarations (accumulated).
+// The middle class appends its own extraClassDeclaration. Concrete ops
+// get both the base and middle declarations (accumulated via 'let append').
 class NS_InheritableMiddleOp<string mnemonic, list<Trait> traits = []>
     : NS_InheritableOp<mnemonic, traits> {
-  let inheritableExtraClassDeclaration = [{
+  let append extraClassDeclaration = [{
     int getMiddleHelper();
   }];
-  let inheritableExtraClassDefinition = [{
+  let append extraClassDefinition = [{
     int $cppClass::getMiddleHelper() { return 1; }
   }];
 }
 
-// Concrete op inheriting from middle class gets the middle class's value.
+// Concrete op inheriting from middle class gets both base and middle.
 def NS_InheritableOpD : NS_InheritableMiddleOp<"inheritable_op_d"> {}
 
-// Concrete op inheriting from middle class with its own extraClassDeclaration.
+// Concrete op inheriting from middle class with its own appended declaration.
 def NS_InheritableOpE : NS_InheritableMiddleOp<"inheritable_op_e"> {
-  let extraClassDeclaration = [{
+  let append extraClassDeclaration = [{
     void doE();
   }];
 }
 
-// Middle class that does NOT set inheritableExtraClassDeclaration — inherits
-// the base class value and passes it through to concrete ops.
+// Middle class that does NOT append — inherits the base class value and
+// passes it through to concrete ops.
 class NS_InheritablePassthroughOp<string mnemonic, list<Trait> traits = []>
     : NS_InheritableOp<mnemonic, traits> {}
 
-// Concrete op gets the original base class inheritable declarations.
+// Concrete op gets the original base class declarations.
 def NS_InheritableOpF : NS_InheritablePassthroughOp<"inheritable_op_f"> {}

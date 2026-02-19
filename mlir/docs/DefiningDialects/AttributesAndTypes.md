@@ -1200,21 +1200,21 @@ Note that these are mechanisms intended for long-tail cases by power users; for
 not-yet-implemented widely-applicable cases, improving the infrastructure is
 preferable.
 
-### Inheritable extra declarations and definitions
+### Accumulating extra declarations with `let append`
 
-Similar to [operations](Operations.md#inheritable-extra-declarations-and-definitions),
-attribute and type definitions support `inheritableExtraClassDeclaration` and
-`inheritableExtraClassDefinition`. These fields accumulate across the TableGen
+Similar to [operations](Operations.md#accumulating-extra-declarations-with-let-append),
+attribute and type definitions support `let append` on `extraClassDeclaration`
+and `extraClassDefinition`. These values accumulate across the TableGen
 class hierarchy, so base classes can provide shared C++ code that is
 automatically included in all derived attributes or types. A derived class can
-opt out by setting the field to empty (`[{}]`).
+opt out by using a plain `let` to override the accumulated value.
 
 ```tablegen
 class MyBaseType<string name> : TypeDef<MyDialect, name> {
-  let inheritableExtraClassDeclaration = [{
+  let append extraClassDeclaration = [{
     bool isCompatible(Type other);
   }];
-  let inheritableExtraClassDefinition = [{
+  let append extraClassDefinition = [{
     bool $cppClass::isCompatible(Type other) { return other == *this; }
   }];
 }

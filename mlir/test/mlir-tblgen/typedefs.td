@@ -154,24 +154,24 @@ def E_IntegerType : TestType<"Integer"> {
 // DECL-NEXT: bool isUnsigned() const { return getSignedness() == Unsigned; }
 }
 
-// Test inheritable extra class declarations/definitions for types.
+// Test 'let append' for extra class declarations/definitions in types.
 
 class InheritableTestType<string name> : TypeDef<Test_Dialect, name> {
-  let inheritableExtraClassDeclaration = [{
+  let append extraClassDeclaration = [{
     int getInheritedHelper();
   }];
-  let inheritableExtraClassDefinition = [{
+  let append extraClassDefinition = [{
     int $cppClass::getInheritedHelper() { return 42; }
   }];
 }
 
-// Both inheritable and regular extra declarations should appear.
+// Both appended and regular extra declarations should appear.
 def F_InheritableTypeA : InheritableTestType<"InheritableA"> {
   let typeName = "test.inheritable_a";
-  let extraClassDeclaration = [{
+  let append extraClassDeclaration = [{
     void doA();
   }];
-  let extraClassDefinition = [{
+  let append extraClassDefinition = [{
     void $cppClass::doA() {}
   }];
 }
@@ -184,7 +184,7 @@ def F_InheritableTypeA : InheritableTestType<"InheritableA"> {
 // DEF: return 42;
 // DEF-LABEL: void InheritableAType::doA()
 
-// Only inheritable declarations (no extraClassDeclaration).
+// Only appended declarations from parent (no additional extraClassDeclaration).
 def G_InheritableTypeB : InheritableTestType<"InheritableB"> {
   let typeName = "test.inheritable_b";
 }
@@ -192,22 +192,22 @@ def G_InheritableTypeB : InheritableTestType<"InheritableB"> {
 // DECL-LABEL: class InheritableBType
 // DECL: int getInheritedHelper();
 
-// Discard inheritable declarations by setting to empty.
+// Discard accumulated declarations by using plain 'let' to override.
 def H_InheritableTypeC : InheritableTestType<"InheritableC"> {
   let typeName = "test.inheritable_c";
-  let inheritableExtraClassDeclaration = [{}];
-  let inheritableExtraClassDefinition = [{}];
+  let extraClassDeclaration = [{}];
+  let extraClassDefinition = [{}];
 }
 
 // DECL-LABEL: class InheritableCType
 // DECL-NOT: int getInheritedHelper();
 
-// Middle-of-stack: accumulates with base inheritable declarations.
+// Middle-of-stack: accumulates with base declarations via 'let append'.
 class InheritableMiddleType<string name> : InheritableTestType<name> {
-  let inheritableExtraClassDeclaration = [{
+  let append extraClassDeclaration = [{
     int getMiddleHelper();
   }];
-  let inheritableExtraClassDefinition = [{
+  let append extraClassDefinition = [{
     int $cppClass::getMiddleHelper() { return 1; }
   }];
 }
@@ -226,7 +226,7 @@ def I_InheritableTypeD : InheritableMiddleType<"InheritableD"> {
 // DEF-LABEL: int InheritableDType::getMiddleHelper()
 // DEF: return 1;
 
-// Passthrough: middle class doesn't set inheritable, base value passes through.
+// Passthrough: middle class doesn't append, base value passes through.
 class InheritablePassthroughType<string name> : InheritableTestType<name> {}
 
 def J_InheritableTypeE : InheritablePassthroughType<"InheritableE"> {
