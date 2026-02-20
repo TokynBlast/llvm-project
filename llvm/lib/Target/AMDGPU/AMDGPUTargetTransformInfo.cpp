@@ -735,9 +735,6 @@ GCNTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
     break;
   }
 
-  if (!intrinsicHasPackedVectorBenefit(ICA.getID()))
-    return BaseT::getIntrinsicInstrCost(ICA, CostKind);
-
   Type *RetTy = ICA.getReturnType();
 
   // Legalize the type.
@@ -747,6 +744,25 @@ GCNTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
     LT.second.getVectorNumElements() : 1;
 
   MVT::SimpleValueType SLT = LT.second.getScalarType().SimpleTy;
+  switch (ICA.getID()) {
+  case Intrinsic::exp:
+    if (SLT == MVT::f64)
+      return LT.first * NElts * 21 * get64BitInstrCost(CostKind);
+    break;
+  case Intrinsic::exp2:
+    if (SLT == MVT::f64)
+      return LT.first * NElts * 20 * get64BitInstrCost(CostKind);
+    break;
+  case Intrinsic::exp10:
+    if (SLT == MVT::f64)
+      return LT.first * NElts * 23 * get64BitInstrCost(CostKind);
+    break;
+  default:
+    break;
+  }
+
+  if (!intrinsicHasPackedVectorBenefit(ICA.getID()))
+    return BaseT::getIntrinsicInstrCost(ICA, CostKind);
 
   if ((ST->hasVOP3PInsts() &&
        (SLT == MVT::f16 || SLT == MVT::i16 ||
